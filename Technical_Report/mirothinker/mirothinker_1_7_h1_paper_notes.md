@@ -299,9 +299,7 @@ Mid-training 目标是提升原子 agent 能力，而不是直接训练完整长
 统一目标函数是：
 
 $$
-L_{\mathrm{mid}}(\theta)
-=-\mathbb{E}_{(C_{<k},y_k)\sim D_{\mathrm{mid}}}
-\left[\log \pi_\theta(y_k\mid C_{<k})\right]
+L_{\mathrm{mid}}(\theta) =-\mathbb{E}_{(C_{<k},y_k)\sim D_{\mathrm{mid}}} \left[\log \pi_\theta(y_k\mid C_{<k})\right]
 $$
 
 其中：
@@ -328,12 +326,7 @@ $$
 训练目标是最大化专家轨迹中的 thought 与 action：
 
 $$
-L_{\mathrm{SFT}}(\theta)
-=-\mathbb{E}_{(x,H)}
-\left[
-\sum_{t=1}^{T_H}
-\log \pi_\theta(T_t,A_t\mid x,H_{<t})
-\right]
+L_{\mathrm{SFT}}(\theta) =-\mathbb{E}_{(x,H)} \left[ \sum_{t=1}^{T_H} \log \pi_\theta(T_t,A_t\mid x,H_{<t}) \right]
 $$
 
 这里工具不会在训练时真实执行，observation 已经预先收集好，并作为用户轮次的一部分提供给模型。
@@ -349,25 +342,13 @@ $$
 偏好原则主要基于最终答案正确性，不强制固定规划长度、步数或模板，避免把表面结构误当作质量。DPO loss 为：
 
 $$
-L_{\mathrm{DPO}}(x,H^+,H^-)
-=-\log \sigma
-\left(
-\beta
-\left[
-\left(\log\pi_\theta(H^+\mid x)-\log\pi_\theta(H^-\mid x)\right)
--
-\left(\log\pi_{\mathrm{ref}}(H^+\mid x)-\log\pi_{\mathrm{ref}}(H^-\mid x)\right)
-\right]
-\right)
+L_{\mathrm{DPO}}(x,H^+,H^-) =-\log \sigma \left( \beta \left[ \left(\log\pi_\theta(H^+\mid x)-\log\pi_\theta(H^-\mid x)\right) - \left(\log\pi_{\mathrm{ref}}(H^+\mid x)-\log\pi_{\mathrm{ref}}(H^-\mid x)\right) \right] \right)
 $$
 
 总体目标加上 preferred trajectories 的 SFT loss：
 
 $$
-L_{\mathrm{PO}}(\theta)
-=\mathbb{E}_{(x,H^+,H^-)}
-\left[L_{\mathrm{DPO}}(x,H^+,H^-)\right]
-+\lambda L_{\mathrm{SFT}}^{(+)}(\theta)
+L_{\mathrm{PO}}(\theta) =\mathbb{E}_{(x,H^+,H^-)} \left[L_{\mathrm{DPO}}(x,H^+,H^-)\right] +\lambda L_{\mathrm{SFT}}^{(+)}(\theta)
 $$
 
 其中 $\pi_{\mathrm{ref}}$ 是 frozen reference model，$\beta$ 控制偏离 reference 的程度，$\lambda$ 控制辅助 SFT loss 权重。
@@ -383,30 +364,19 @@ $$
 对同一 prompt 采样 $G$ 条轨迹，优势函数相对组均值计算：
 
 $$
-\hat{A}_i
-=R(x,H_i)-\frac{1}{G}\sum_{j=1}^{G}R(x,H_j)
+\hat{A}_i =R(x,H_i)-\frac{1}{G}\sum_{j=1}^{G}R(x,H_j)
 $$
 
 最终目标为：
 
 $$
-L_{\mathrm{GRPO}}(\theta)
-=\mathbb{E}_{x\sim D, H\sim\pi_\theta}
-\left[
-\hat{A}(x,H)\log\pi_\theta(H\mid x)
--
-\sum_{t=1}^{|H|}
-\beta_{\mathrm{KL}}(t,H)
-D_{\mathrm{KL}}\left(\pi_\theta(\cdot\mid s_t)\|\pi_{\mathrm{ref}}(\cdot\mid s_t)\right)
-\right]
+L_{\mathrm{GRPO}}(\theta) =\mathbb{E}_{x\sim D, H\sim\pi_\theta} \left[ \hat{A}(x,H)\log\pi_\theta(H\mid x) - \sum_{t=1}^{|H|} \beta_{\mathrm{KL}}(t,H) D_{\mathrm{KL}}\left(\pi_\theta(\cdot\mid s_t)\|\pi_{\mathrm{ref}}(\cdot\mid s_t)\right) \right]
 $$
 
 动态 KL 系数为：
 
 $$
-\beta_{\mathrm{KL}}(t,H)
-=\beta_0+\beta_{\mathrm{ent}}\mathbf{1}
-\left(\hat{A}(x,H)<0\ \land\ \log\pi_\theta(a_t\mid s_t)<\tau\right)
+\beta_{\mathrm{KL}}(t,H) =\beta_0+\beta_{\mathrm{ent}}\mathbf{1} \left(\hat{A}(x,H)<0\ \land\ \log\pi_\theta(a_t\mid s_t)<\tau\right)
 $$
 
 含义是：对负向 rollouts 中低概率 token 加额外 KL 惩罚，防止模型过度压低这些 token 的概率导致 entropy collapse，从而维持探索。

@@ -108,8 +108,7 @@ $$
 采样权重满足：
 
 $$
-p_{\mathrm{calc}}, p_{\mathrm{concept}}, p_{\mathrm{plaus}} \ge 0,\quad
-\sum p_{\cdot} = 1
+p_{\mathrm{calc}}, p_{\mathrm{concept}}, p_{\mathrm{plaus}} \ge 0,\quad \sum p_{\cdot} = 1
 $$
 
 三类干扰项分别对应：
@@ -202,8 +201,7 @@ $$
 若不满足标准，verifier 生成修正版：
 
 $$
-(\tilde{Q}_{\ell},\tilde{S}_{\ell},\tilde{A}_{\ell})
-=V_{\ell}(Q_{\ell},S_{\ell},A_{\ell};Q,S_{\mathrm{true}},A)
+(\tilde{Q}_{\ell},\tilde{S}_{\ell},\tilde{A}_{\ell}) =V_{\ell}(Q_{\ell},S_{\ell},A_{\ell};Q,S_{\mathrm{true}},A)
 $$
 
 论文还使用 Google Translate、DeepL 和 SME back-translation 检查语义一致性。
@@ -213,8 +211,7 @@ $$
 自由形式答案和扰动诊断使用 Gemini 2.0 Flash-Lite 作为 judge，形式化为：
 
 $$
-J:(A_{\mathrm{llm}}, A_{\mathrm{gt}})\mapsto
-\left(R,\left[\left\|v(A_{\mathrm{llm}})-v(A_{\mathrm{gt}})\right\|\le\epsilon\right]\right)
+J:(A_{\mathrm{llm}}, A_{\mathrm{gt}})\mapsto \left(R,\left[\left\|v(A_{\mathrm{llm}})-v(A_{\mathrm{gt}})\right\|\le\epsilon\right]\right)
 $$
 
 其中：

@@ -101,24 +101,15 @@ $$
 $$
 
 $$
-\tilde{A}_l
-=
-\alpha_l^{pre} \cdot (\hat{X}_l W_l^{pre})
-+ S_l^{pre}
+\tilde{A}_l = \alpha_l^{pre} \cdot (\hat{X}_l W_l^{pre}) + S_l^{pre}
 $$
 
 $$
-\tilde{B}_l
-=
-\alpha_l^{res} \cdot \mathrm{Mat}(\hat{X}_l W_l^{res})
-+ S_l^{res}
+\tilde{B}_l = \alpha_l^{res} \cdot \mathrm{Mat}(\hat{X}_l W_l^{res}) + S_l^{res}
 $$
 
 $$
-\tilde{C}_l
-=
-\alpha_l^{post} \cdot (\hat{X}_l W_l^{post})^T
-+ S_l^{post}
+\tilde{C}_l = \alpha_l^{post} \cdot (\hat{X}_l W_l^{post})^T + S_l^{post}
 $$
 
 输入/输出映射用 Sigmoid 做有界约束：
@@ -202,40 +193,23 @@ CSA 的关键结构：
 CSA 首先从 hidden states 生成两组 KV entries 和压缩权重，当前块a和前一个块b：
 
 $$
-C^a = H W_{KV}^a,\quad
-C^b = H W_{KV}^b
+C^a = H W_{KV}^a,\quad C^b = H W_{KV}^b
 $$
 
 $$
-Z^a = H W_Z^a,\quad
-Z^b = H W_Z^b
+Z^a = H W_Z^a,\quad Z^b = H W_Z^b
 $$
 
 其中 $H \in \mathbb{R}^{n \times d}$，$n$ 是序列长度，$d$ 是 hidden size。第 `i` 个 compressed KV entry 的权重由相邻两段 token 的权重共同决定：
 
 $$
-\left[
-S^a_{mi:m(i+1)-1};
-S^b_{m(i-1):mi-1}
-\right]
-=
-\mathrm{Softmax}_{row}
-\left(
-\left[
-Z^a_{mi:m(i+1)-1}+B^a;
-Z^b_{m(i-1):mi-1}+B^b
-\right]
-\right)
+\left[ S^a_{mi:m(i+1)-1}; S^b_{m(i-1):mi-1} \right] = \mathrm{Softmax}_{row} \left( \left[ Z^a_{mi:m(i+1)-1}+B^a; Z^b_{m(i-1):mi-1}+B^b \right] \right)
 $$
 
 压缩后的 KV entry：
 
 $$
-C_i^{Comp}
-=
-\sum_{j=mi}^{m(i+1)-1} S_j^a \odot C_j^a
-+
-\sum_{j=m(i-1)}^{mi-1} S_j^b \odot C_j^b
+C_i^{Comp} = \sum_{j=mi}^{m(i+1)-1} S_j^a \odot C_j^a + \sum_{j=m(i-1)}^{mi-1} S_j^b \odot C_j^b
 $$
 
 其中 $\odot$ 表示逐元素乘法。CSA 的压缩率为 $1/m$，论文配置中 $m=4$，$B^a, B^b$ 是可学习的位置偏置。
@@ -259,15 +233,7 @@ $$
 query token $t$ 与压缩块 $s$ 的 index score：
 
 $$
-I_{t,s}
-=
-\sum_{h=1}^{n_h^I}
-w_{t,h}^I
-\cdot
-\mathrm{ReLU}
-\left(
-q_{t,h}^I \cdot K_s^{IComp}
-\right)
+I_{t,s} = \sum_{h=1}^{n_h^I} w_{t,h}^I \cdot \mathrm{ReLU} \left( q_{t,h}^I \cdot K_s^{IComp} \right)
 $$
 
 Top-k 选择得到 query token $t$ 可见的压缩 KV 集合，DeepSeek-V4 中：Flash 的 CSA top-k 是 512；Pro 的 CSA top-k 是 1024：
@@ -283,14 +249,7 @@ q_t = c_t^Q W^{UQ}
 $$
 
 $$
-o_{t,i}
-=
-\mathrm{CoreAttn}
-\left(
-\text{query}=q_{t,i},
-\text{key}=C_t^{SprsComp},
-\text{value}=C_t^{SprsComp}
-\right)
+o_{t,i} = \mathrm{CoreAttn} \left( \text{query}=q_{t,i}, \text{key}=C_t^{SprsComp}, \text{value}=C_t^{SprsComp} \right)
 $$
 
 学习理解：CSA 类似「先把长书按段压缩成摘要，再用一个轻量检索器挑出当前问题最相关的段落，最后只读这些段落和最近几句话」。
@@ -320,34 +279,19 @@ $$
 第 `i` 个 heavily compressed KV entry 的权重：
 
 $$
-S_{m'i:m'(i+1)-1}
-=
-\mathrm{Softmax}_{row}
-\left(
-Z_{m'i:m'(i+1)-1} + B
-\right)
+S_{m'i:m'(i+1)-1} = \mathrm{Softmax}_{row} \left( Z_{m'i:m'(i+1)-1} + B \right)
 $$
 
 压缩后的 KV entry：
 
 $$
-C_i^{Comp}
-=
-\sum_{j=m'i}^{m'(i+1)-1}
-S_j \odot C_j
+C_i^{Comp} = \sum_{j=m'i}^{m'(i+1)-1} S_j \odot C_j
 $$
 
 HCA 的压缩率为 $1/m'$，论文配置中 $m'=128$。之后它不做 Top-k 稀疏选择，而是对压缩后的 KV 做 dense attention：
 
 $$
-o_{t,i}
-=
-\mathrm{CoreAttn}
-\left(
-\text{query}=q_{t,i},
-\text{key}=C^{Comp},
-\text{value}=C^{Comp}
-\right)
+o_{t,i} = \mathrm{CoreAttn} \left( \text{query}=q_{t,i}, \text{key}=C^{Comp}, \text{value}=C^{Comp} \right)
 $$
 
 学习理解：HCA 更像「为超长上下文建立粗粒度全局记忆」，牺牲细节精度，换取极低的长程访问成本。
@@ -372,13 +316,7 @@ $$
 Attention Sink 的公式如下，其中 $z'_h$ 是第 $h$ 个 head 的可学习 sink logit：
 
 $$
-s_{h,i,j}
-=
-\frac{
-\exp(z_{h,i,j})
-}{
-\sum_k \exp(z_{h,i,k}) + \exp(z'_h)
-}
+s_{h,i,j} = \frac{ \exp(z_{h,i,j}) }{ \sum_k \exp(z_{h,i,k}) + \exp(z'_h) }
 $$
 
 这个分母额外加入 sink 项后，某个 head 分配给真实 KV 的总注意力质量可以小于 1。
@@ -429,13 +367,7 @@ $$
 Hybrid Newton-Schulz 近似正交化的迭代形式：
 
 $$
-M_k
-=
-aM_{k-1}
-+
-b(M_{k-1}M_{k-1}^T)M_{k-1}
-+
-c(M_{k-1}M_{k-1}^T)^2M_{k-1}
+M_k = aM_{k-1} + b(M_{k-1}M_{k-1}^T)M_{k-1} + c(M_{k-1}M_{k-1}^T)^2M_{k-1}
 $$
 
 为什么重要：
@@ -540,9 +472,7 @@ MoE 的 expert parallelism 会带来大量跨节点通信。DeepSeek-V4 把 MoE 
 这个设计的判断依据是通信能否被计算隐藏。若峰值计算吞吐为 $C$，互联带宽为 $B$，计算量为 $V_{comp}$，通信量为 $V_{comm}$，通信可被隐藏的条件为：
 
 $$
-\frac{C}{B}
-\le
-\frac{V_{comp}}{V_{comm}}
+\frac{C}{B} \le \frac{V_{comp}}{V_{comm}}
 $$
 
 对 DeepSeek-V4-Pro，论文给出的近似化简为：
@@ -677,16 +607,7 @@ flowchart LR
 OPD 的目标是让统一学生模型在自己采样出的轨迹上，向多个专家教师的输出分布靠拢。论文使用 reverse KL：
 
 $$
-\mathcal{L}_{OPD}(\theta)
-=
-\sum_{i=1}^{N}
-w_i \cdot
-D_{KL}
-\left(
-\pi_\theta
-\Vert
-\pi_{E_i}
-\right)
+\mathcal{L}_{OPD}(\theta) = \sum_{i=1}^{N} w_i \cdot D_{KL} \left( \pi_\theta \Vert \pi_{E_i} \right)
 $$
 
 其中 $\pi_\theta$ 是统一学生模型，$\pi_{E_i}$ 是第 `i` 个专家教师模型，$w_i$ 是该专家的权重。
@@ -706,16 +627,7 @@ $$
 如果展开到完整词表上的单步分布，可理解为：
 
 $$
-D_{KL}(\pi_\theta \Vert \pi_E)
-=
-\sum_{y \in \mathcal{V}}
-\pi_\theta(y \mid x)
-\log
-\frac{
-\pi_\theta(y \mid x)
-}{
-\pi_E(y \mid x)
-}
+D_{KL}(\pi_\theta \Vert \pi_E) = \sum_{y \in \mathcal{V}} \pi_\theta(y \mid x) \log \frac{ \pi_\theta(y \mid x) }{ \pi_E(y \mid x) }
 $$
 
 ## 14. 工具调用与 Thinking 管理
