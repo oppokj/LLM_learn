@@ -83,15 +83,7 @@ $$
 mHC 的核心改动是：把 `B_l` 限制在双随机矩阵流形，也就是 Birkhoff polytope(多胞形)：
 
 $$
-\mathcal{M}
-=
-\left\{
-M \in \mathbb{R}^{n \times n}
-\mid
-M\mathbf{1}_n = \mathbf{1}_n,
-\mathbf{1}_n^T M = \mathbf{1}_n^T,
-M \ge 0
-\right\}
+\mathcal{M} = \{M \in \mathbb{R}^{n \times n} \mid M\mathbf{1}_n = \mathbf{1}_n,\ \mathbf{1}_n^T M = \mathbf{1}_n^T,\ M \ge 0\}
 $$
 
 这样做的意义：
@@ -281,13 +273,7 @@ $$
 Top-k 选择得到 query token $t$ 可见的压缩 KV 集合，DeepSeek-V4 中：Flash 的 CSA top-k 是 512；Pro 的 CSA top-k 是 1024：
 
 $$
-C_t^{SprsComp}
-=
-\left\{
-C_s^{Comp}
-\mid
-I_{t,s} \in \mathrm{Top}\text{-}k(I_{t,:})
-\right\}
+C_t^{SprsComp} = \{C_s^{Comp} \mid I_{t,s} \in \mathrm{Top}\text{-}k(I_{t,:})\}
 $$
 
 最后执行 shared key-value MQA（这里 compressed KV 同时作为 key 和 value）：
